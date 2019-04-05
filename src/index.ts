@@ -352,7 +352,7 @@ export function createQuery(model: QueryModel) {
   return [
     model.getSqlQuery()
       .replace(
-        /([^a-zA-Z0-9])(@[a-zA-Z][a-zA-Z0-9]+)([^a-zA-Z0-9])/g,
+        /([^a-zA-Z0-9_])(@[a-zA-Z_][a-zA-Z0-9_]+)([^_a-zA-Z0-9])/g,
         (_, prefix, key, postfix) => `${prefix}${map[key]}${postfix}`),
     params];
 }
