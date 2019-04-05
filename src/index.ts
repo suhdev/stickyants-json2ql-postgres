@@ -281,7 +281,7 @@ export class QueryModel {
       }
     }
 
-    let limit = `OFFSET ${skip} ROWS FETCH NEXT ${count} ROWS ONLY`;
+    let limit = `LIMIT ${count} OFFSET ${skip}`;
     if (count === -1 || this.isStats || !orderby) {
       limit = '';
     }

@@ -53,3 +53,4 @@ export declare class QueryModel {
     getParameters(): SqlParameter[];
     getSqlQuery(count?: number, skip?: number, isWith?: boolean): any;
 }
+export declare function createQuery(model: QueryModel): any[];
