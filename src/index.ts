@@ -40,7 +40,6 @@ export class Join {
   }
 }
 
-
 export class SqlCondition {
   static id: number = 1;
   $id: number = -1;
@@ -257,7 +256,7 @@ export class QueryModel {
   getParameters(): SqlParameter[] {
     const pr: SqlParameter[] = [];
     if (this.refiners && this.refiners.length > 0) {
-      pr.push(...[].concat(this.refiners.map(e => e.getParameters())));
+      pr.push(...[].concat(...this.refiners.map(e => e.getParameters())));
     }
     if (this.with && this.with.length > 0) {
       pr.push(...[].concat(...this.with.map(e => e.getParameters())));
@@ -328,4 +327,20 @@ export class QueryModel {
     // tslint:disable-next-line: max-line-length
     return `${wwith} SELECT ${distinct} ${sel} FROM ${this.table} ${join} ${entityName} ${where} ${groupBy} ${having} ${orderby} ${limit}`;
   }
+}
+
+export function createQuery(model: QueryModel) {
+  const params = model.getParameters();
+  const map = params.reduce(
+    (prev, curr, i) => {
+      prev[curr.key] = `$${i + 1}`;
+      return prev;
+    },
+    {});
+  return [
+    model.getSqlQuery()
+      .replace(
+        /([^a-zA-Z0-9])(@[a-zA-Z][a-zA-Z0-9]+)([^a-zA-Z0-9])/g,
+        (_, prefix, key, postfix) => `${prefix}${map[key]}${postfix}`),
+    params];
 }
