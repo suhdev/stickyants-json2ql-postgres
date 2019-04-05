@@ -1,4 +1,5 @@
-import { SqlOperator, SqlRefinerType, JoinType } from 'json2ql';
+import { SqlOperator, SqlRefinerType, JoinType, ISqlRefiner, ISqlQuery } from 'json2ql';
+import { ISqlJoin } from 'json2ql/lib/ISqlJoin';
 export interface ISqlParameter {
     key: string;
     value: any;
@@ -9,7 +10,7 @@ export declare class Join {
     on: SqlCondition[];
     type: JoinType;
     toString(): any;
-    static fromJson(json: Partial<Join>): Join;
+    static fromJson(json: Partial<ISqlJoin>): Join;
 }
 export declare class SqlCondition {
     static id: number;
@@ -35,17 +36,15 @@ export declare class SqlCondition {
         value: any;
     }[];
     getParameters(): ISqlParameter[];
-    static fromJson(json: Partial<SqlCondition>): SqlCondition;
+    static fromJson(json: Partial<ISqlQuery & ISqlRefiner>): SqlCondition;
 }
 export declare class QueryModel {
     count: number;
-    isDistinct: boolean;
     skip: number;
     joins: Join[];
     table: string;
     selection: string[];
     as: string;
-    isStats: boolean;
     tableIdentifier: string;
     groupBy: string[];
     having: SqlCondition[];
@@ -53,9 +52,11 @@ export declare class QueryModel {
     refiners: SqlCondition[];
     sorters: SqlCondition[];
     operator: SqlOperator;
+    modifiers: number;
+    readonly isDistinct: boolean;
     readonly entityName: string;
     readonly entityIdentifier: string;
-    static fromJson(json: Partial<QueryModel>): QueryModel;
+    static fromJson(json: Partial<ISqlQuery & ISqlRefiner>): QueryModel;
     getParameters(): ISqlParameter[];
     getSqlQuery(count?: number, skip?: number, isWith?: boolean): any;
 }

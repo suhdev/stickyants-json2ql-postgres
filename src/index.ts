@@ -1,5 +1,10 @@
-import { SqlOperator, SqlQueryFlags, SqlRefinerType, JoinType } from 'json2ql';
+import {
+  SqlOperator, SqlQueryFlags,
+  SqlRefinerType, JoinType,
+  ISqlRefiner, ISqlQuery, SqlModifier,
+} from 'json2ql';
 import { cleanKey, operatorToString } from './util';
+import { ISqlJoin } from 'json2ql/lib/ISqlJoin';
 
 export interface ISqlParameter {
   key: string;
@@ -34,11 +39,11 @@ export class Join {
     return `${type} ${this.to} ${alias} ON (${this.on.map(e => e.getSqlStatement(), ' AND ')})`;
   }
 
-  static fromJson(json: Partial<Join>) {
+  static fromJson(json: Partial<ISqlJoin>) {
     const j = new Join();
     j.on = json.on.map(e => SqlCondition.fromJson(e));
     j.to = json.to;
-    j.toAlias = json.toAlias;
+    j.toAlias = json.alias;
     j.type = json.type;
     return j;
   }
@@ -95,8 +100,8 @@ export class SqlCondition {
         return `(${this.key} ${opz} @${this.key}${this.id})`;
       case SqlRefinerType.Selection:
         const sv = this.getArrayForValue(this.value);
-        const opx = operatorToString(this.operator);
-        return `(${this.key} ${opx} (${sv.map((_, i) => `@${this.key}${this.id}${i}`)}))`;
+        const o = operatorToString(this.operator);
+        return `(${this.key} ${o} (${sv.map((_, i) => `@${this.key}${this.id}${i}`).join(', ')}))`;
       case SqlRefinerType.Sort:
         const asc = this.value === 1 ? 'ASC' : 'DESC';
         return `${this.key} ${asc}`;
@@ -200,29 +205,27 @@ export class SqlCondition {
     return list;
   }
 
-  static fromJson(json: Partial<SqlCondition>) {
+  static fromJson(json: Partial<ISqlQuery & ISqlRefiner>) {
     const c = new SqlCondition();
     c.key = json.key;
     c.flags = json.flags;
     c.operator = json.operator;
     c.type = json.type;
     c.value = json.value;
-    c.as = json.as;
-    c.relation = c.relation && QueryModel.fromJson(c.relation);
-    c.refiners = c.refiners && c.refiners.map(e => SqlCondition.fromJson(e));
+    c.as = json['as'];
+    c.relation = json.relation && QueryModel.fromJson(json.relation);
+    c.refiners = json.refiners && json.refiners.map(e => SqlCondition.fromJson(e));
     return c;
   }
 }
 
 export class QueryModel {
   count: number;
-  isDistinct: boolean;
   skip: number;
   joins: Join[];
   table: string;
   selection: string[];
   as: string;
-  isStats: boolean;
   tableIdentifier: string;
   groupBy: string[];
   having: SqlCondition[];
@@ -230,6 +233,11 @@ export class QueryModel {
   refiners: SqlCondition[];
   sorters: SqlCondition[];
   operator: SqlOperator;
+  modifiers: number;
+
+  get isDistinct(): boolean {
+    return (SqlModifier.Distinct & this.modifiers) === SqlModifier.Distinct;
+  }
 
   get entityName(): string {
     return this.as ? this.as : this.table;
@@ -239,7 +247,7 @@ export class QueryModel {
     return this.tableIdentifier ? this.tableIdentifier.trim() : 'Id';
   }
 
-  static fromJson(json: Partial<QueryModel>) {
+  static fromJson(json: Partial<ISqlQuery & ISqlRefiner>) {
     const m = new QueryModel();
     m.joins = json.joins && json.joins.map(e => Join.fromJson(e));
     m.as = json.as;
@@ -248,8 +256,7 @@ export class QueryModel {
     m.table = json.table;
     m.selection = json.selection;
     m.operator = json.operator;
-    m.isStats = json.isStats;
-    m.isDistinct = json.isDistinct;
+    m.modifiers = json.modifiers;
     m.groupBy = json.groupBy;
     m.having = json.having && json.having.map(e => SqlCondition.fromJson(e));
     m.refiners = json.refiners && json.refiners.map(e => SqlCondition.fromJson(e));
@@ -287,7 +294,7 @@ export class QueryModel {
     }
 
     let limit = `LIMIT ${count} OFFSET ${skip}`;
-    if (count === -1 || this.isStats || !orderby) {
+    if (count === -1 || !orderby) {
       limit = '';
     }
 
@@ -304,12 +311,12 @@ export class QueryModel {
     }
 
     if (this.refiners && this.refiners.length > 0) {
-      const op = this.operator === SqlOperator.OR ? 'OR' : 'AND';
+      const op = this.operator === SqlOperator.OR ? ' OR ' : ' AND ';
       sb += `(${this.refiners.map(e => e.getSqlStatement()).join(op)})`;
     }
 
     if (this.having && this.having.length > 0) {
-      const op = this.operator === SqlOperator.OR ? 'OR' : 'AND';
+      const op = this.operator === SqlOperator.OR ? ' OR ' : ' AND ';
       hb += `(${this.having.map(e => e.getSqlStatement()).join(op)})`;
     }
 
