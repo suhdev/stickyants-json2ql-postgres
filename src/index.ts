@@ -1,6 +1,10 @@
 import { SqlOperator, SqlQueryFlags, SqlRefinerType, JoinType } from 'json2ql';
-import { SqlParameter } from './SqlParameter';
 import { cleanKey, operatorToString } from './util';
+
+export interface ISqlParameter {
+  key: string;
+  value: any;
+}
 
 export class Join {
   to: string;
@@ -153,24 +157,25 @@ export class SqlCondition {
 
   arrayToSqlParameter(arr: any[]) {
     return arr && arr.length ?
-      arr.map((e, i) => new SqlParameter(`@${cleanKey(this.key)}${this.id}${i}`, e)) : [];
+      arr.map((e, i) => ({ key: `@${cleanKey(this.key)}${this.id}${i}`, value: e })) : [];
   }
 
-  getParameters(): SqlParameter[] {
-    const list: SqlParameter[] = [];
+  getParameters(): ISqlParameter[] {
+    const list: ISqlParameter[] = [];
     if (this.isValueMagicParameter) {
       return list;
     }
     switch (this.type) {
       case SqlRefinerType.Date:
       case SqlRefinerType.DateTime:
-        list.push(new SqlParameter(
-          `@${cleanKey(this.key)}${this.id}`,
-          typeof this.value === 'string' ? Date.parse(this.value) : new Date(this.value)));
+        list.push({
+          key: `@${cleanKey(this.key)}${this.id}`,
+          value: typeof this.value === 'string' ? Date.parse(this.value) : new Date(this.value),
+        });
         break;
       case SqlRefinerType.DateRange:
-        list.push(new SqlParameter(`@${cleanKey(this.key)}${this.id}From`, this.value[0]));
-        list.push(new SqlParameter(`@${cleanKey(this.key)}${this.id}To`, this.value[1]));
+        list.push({ key: `@${cleanKey(this.key)}${this.id}From`, value: this.value[0] });
+        list.push({ key: `@${cleanKey(this.key)}${this.id}To`, value: this.value[1] });
         break;
       case SqlRefinerType.Selection:
         list.push(...this.arrayToSqlParameter(this.value));
@@ -186,9 +191,9 @@ export class SqlCondition {
           break;
         }
         if (this.operator === SqlOperator.LIKE) {
-          list.push(new SqlParameter(`@${cleanKey(this.key)}${this.id}`, `${this.value}`));
+          list.push({ key: `@${cleanKey(this.key)}${this.id}`, value: `${this.value}` });
         } else {
-          list.push(new SqlParameter(`@${cleanKey(this.key)}${this.id}`, this.value));
+          list.push({ key: `@${cleanKey(this.key)}${this.id}`, value: this.value });
         }
         break;
     }
@@ -253,8 +258,8 @@ export class QueryModel {
     return m;
   }
 
-  getParameters(): SqlParameter[] {
-    const pr: SqlParameter[] = [];
+  getParameters(): ISqlParameter[] {
+    const pr: ISqlParameter[] = [];
     if (this.refiners && this.refiners.length > 0) {
       pr.push(...[].concat(...this.refiners.map(e => e.getParameters())));
     }

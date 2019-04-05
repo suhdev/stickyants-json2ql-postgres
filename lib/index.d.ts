@@ -1,5 +1,8 @@
 import { SqlOperator, SqlRefinerType, JoinType } from 'json2ql';
-import { SqlParameter } from './SqlParameter';
+export interface ISqlParameter {
+    key: string;
+    value: any;
+}
 export declare class Join {
     to: string;
     toAlias: string;
@@ -27,8 +30,11 @@ export declare class SqlCondition {
     getArrayForValue(value: any[]): number[];
     getSqlStatement(): any;
     defaultToString(): string;
-    arrayToSqlParameter(arr: any[]): SqlParameter[];
-    getParameters(): SqlParameter[];
+    arrayToSqlParameter(arr: any[]): {
+        key: string;
+        value: any;
+    }[];
+    getParameters(): ISqlParameter[];
     static fromJson(json: Partial<SqlCondition>): SqlCondition;
 }
 export declare class QueryModel {
@@ -50,7 +56,7 @@ export declare class QueryModel {
     readonly entityName: string;
     readonly entityIdentifier: string;
     static fromJson(json: Partial<QueryModel>): QueryModel;
-    getParameters(): SqlParameter[];
+    getParameters(): ISqlParameter[];
     getSqlQuery(count?: number, skip?: number, isWith?: boolean): any;
 }
 export declare function createQuery(model: QueryModel): any[];
