@@ -280,7 +280,7 @@ export class QueryModel {
     return pr;
   }
 
-  getSqlQuery(count = 10, skip = 0, isWith = false) {
+  getSqlQuery(count = this.count, skip = this.skip, isWith = false) {
     let sb = '';
     let hb = '';
 
@@ -350,7 +350,7 @@ export function createQuery(model: QueryModel) {
     },
     {});
   return [
-    model.getSqlQuery()
+    model.getSqlQuery(model.count, model.skip)
       .replace(
         /([^a-zA-Z0-9_])(@[a-zA-Z_][a-zA-Z0-9_]+)([^_a-zA-Z0-9])/g,
         (_, prefix, key, postfix) => `${prefix}${map[key]}${postfix}`),
